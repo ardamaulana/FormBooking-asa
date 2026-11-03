@@ -381,8 +381,16 @@ function formatOrderDate(value){
  if(m){const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));return new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}).format(d)}
  const d=new Date(raw);return isNaN(d)?raw:new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}).format(d);
 }
+function formatOrderTime(value){
+ if(value==null||value==='')return '';
+ const raw=String(value).trim();
+ // Handles time values serialized by Google Sheets as 1899-12-30T06:49:48.000Z.
+ const iso=raw.match(/T(\d{2}:\d{2})/);if(iso)return iso[1];
+ const hm=raw.match(/^(\d{1,2}:\d{2})/);if(hm)return hm[1].padStart(5,'0');
+ return raw;
+}
 function orderText(b){
- const start=b.start||b.startTime||'';const end=b.end||b.endTime||'';
+ const start=formatOrderTime(b.start||b.startTime||'');const end=formatOrderTime(b.end||b.endTime||'');
  const time=start&&end?`${start} - ${end}`:(start||end||'-');
  return `Format Order Moments Asa :\n\n• Nama pemesan: ${b.name||'-'}\n• No hp: ${b.phone||'-'}\n• Hari & tanggal acara: ${formatOrderDate(b.date)}\n• Lokasi: ${b.location||'-'}\n• Jam acara: ${time}\n• Jenis paket: ${b.packageName||'-'}`;
 }
