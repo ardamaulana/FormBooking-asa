@@ -271,17 +271,36 @@ function hide(id){document.getElementById(id).classList.add('hidden-page')}
 function backendReady(){return GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/macros/s/') && !GOOGLE_SCRIPT_URL.includes('TEMPEL_URL')}
 
 function gasRequest(params){
+ // Request create/saveConfig memakai POST agar payload booking/PDF tidak memenuhi URL.
+ const usePost = ['create','saveConfig'].includes(params.action);
+ if(!usePost){
+  return new Promise((resolve,reject)=>{
+   if(!backendReady()){reject(new Error('URL Google Apps Script belum dipasang.'));return}
+   const cb='asa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+   const script=document.createElement('script');
+   const timer=setTimeout(()=>{cleanup();reject(new Error('Koneksi ke Google Sheets timeout.'))},20000);
+   function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
+   window[cb]=(response)=>{cleanup();if(response&&response.ok)resolve(response);else reject(new Error(response?.error||'Permintaan gagal.'))};
+   const query=new URLSearchParams({...params,token:GOOGLE_API_TOKEN,callback:cb});
+   script.onerror=()=>{cleanup();reject(new Error('Tidak dapat menghubungi Google Apps Script. Periksa deployment dan log eksekusi.'))};
+   script.src=GOOGLE_SCRIPT_URL+'?'+query.toString();
+   document.head.appendChild(script);
+  });
+ }
  return new Promise((resolve,reject)=>{
   if(!backendReady()){reject(new Error('URL Google Apps Script belum dipasang.'));return}
-  const cb='asa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
-  const script=document.createElement('script');
-  const timer=setTimeout(()=>{cleanup();reject(new Error('Koneksi ke Google Sheets timeout.'))},20000);
-  function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
-  window[cb]=(response)=>{cleanup();if(response&&response.ok)resolve(response);else reject(new Error(response?.error||'Permintaan gagal.'))};
-  const query=new URLSearchParams({...params,token:GOOGLE_API_TOKEN,callback:cb});
-  script.onerror=()=>{cleanup();reject(new Error('Tidak dapat menghubungi Google Apps Script.'))};
-  script.src=GOOGLE_SCRIPT_URL+'?'+query.toString();
-  document.head.appendChild(script);
+  const frameName='asa_post_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const iframe=document.createElement('iframe');
+  iframe.name=frameName;iframe.style.display='none';
+  const form=document.createElement('form');
+  form.method='POST';form.action=GOOGLE_SCRIPT_URL;form.target=frameName;form.style.display='none';
+  const values={token:GOOGLE_API_TOKEN,action:params.action,payload:params.payload||'{}'};
+  Object.entries(values).forEach(([name,value])=>{const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)});
+  let settled=false;
+  const timer=setTimeout(()=>finish(new Error('Koneksi POST ke Google Apps Script timeout.')),45000);
+  function finish(err,result){if(settled)return;settled=true;clearTimeout(timer);window.removeEventListener('message',onMessage);form.remove();iframe.remove();err?reject(err):resolve(result)}
+  function onMessage(event){if(event.source!==iframe.contentWindow)return;const msg=event.data;if(!msg||!['ASA_GAS_RESULT','ASA_GAS_ERROR'].includes(msg.type))return;if(msg.type==='ASA_GAS_ERROR')finish(new Error(msg.error||'Apps Script gagal memproses booking.'));else if(msg.result&&msg.result.ok)finish(null,msg.result);else finish(new Error(msg.result?.error||'Permintaan gagal.'))}
+  window.addEventListener('message',onMessage);document.body.appendChild(iframe);document.body.appendChild(form);form.submit();
  });
 }
 async function loadCloudConfig(){
