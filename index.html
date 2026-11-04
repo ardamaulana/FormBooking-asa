@@ -56,7 +56,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 .toast { animation: toast 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes toast { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Form styles enhancement */
 .label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: #334155; }
 .label span { font-weight: 400; color: #94a3b8; font-size: 0.8rem; }
 .input { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 0.875rem; padding: 0.75rem 1rem; outline: none; transition: all 0.2s ease; font-size: 0.95rem; background-color: #ffffff; }
@@ -80,7 +79,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 .mobileNav { padding: 0.5rem 0.85rem; margin-right: 0.35rem; border-radius: 0.6rem; background: #f1f5f9; font-weight: 600; font-size: 0.825rem; color: #475569; }
 .mobileNav:hover { background: #e2e8f0; }
 
-/* Hidden Secret Admin Area */
 .secret-admin-btn {
   opacity: 0.05;
   transition: opacity 0.3s ease;
@@ -104,7 +102,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
   <div><div class="font-black text-lg leading-tight tracking-tight text-slate-900">Moments Asa</div><div class="text-[11px] font-medium text-slate-400">Booking Form</div></div>
 </div>
 
-<!-- Secret Trigger Area (Tahan 5 Detik ATAU Ketuk 3x Cepat) -->
 <button 
   id="secretAdminTrigger"
   class="secret-admin-btn text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full cursor-default select-none"
@@ -160,8 +157,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 <div class="card space-y-6">
 <div><label class="label">Konsep / Gambaran Acara</label><textarea id="concept" class="input min-h-28 resize-none" placeholder="Contoh: natural, candid, elegan, intimate..."></textarea></div>
 <div><label class="label">Link Referensi <span>(opsional)</span></label><input id="referenceLink" class="input" type="url" placeholder="Pinterest / Instagram / Google Drive"></div>
-<div><label class="label">Upload PDF Booking <span>(opsional)</span></label><label class="upload"><div class="text-3xl mb-1">📄</div><b class="text-slate-700 text-sm">Klik untuk pilih PDF</b><small>PDF akan disimpan ke Google Drive Moments Asa.</small><input id="bookingPdf" type="file" accept="application/pdf,.pdf" class="hidden" onchange="showPdfName(this)"></label><div id="pdfName" class="hint font-medium text-indigo-600"></div><small class="text-slate-400">Maksimal 8 MB per file.</small></div>
-<div><label class="label">Upload Referensi Foto <span>(opsional)</span></label><label class="upload"><div class="text-3xl mb-1">📎</div><b class="text-slate-700 text-sm">Klik untuk upload foto</b><small>Foto hanya ditampilkan sebagai nama file.</small><input id="referenceFiles" type="file" multiple accept="image/*" class="hidden" onchange="showFiles(this)"></label><div id="fileNames" class="hint font-medium text-indigo-600"></div></div>
+<div><label class="label">Upload PDF Referensi / Moodboard <span>(opsional)</span></label><label class="upload"><div class="text-3xl mb-1">📄</div><b class="text-slate-700 text-sm">Klik untuk upload file PDF</b><small>File PDF akan otomatis disimpan ke Google Drive.</small><input id="pdfFile" type="file" accept="application/pdf" class="hidden" onchange="showFiles(this)"></label><div id="fileNames" class="hint font-medium text-indigo-600"></div></div>
 <div><label class="label">Catatan / Request Khusus</label><textarea id="notes" class="input min-h-28 resize-none" placeholder="Tulis request khusus..."></textarea></div>
 </div>
 <div class="actions"><button class="secondary" onclick="prevClient()">← Kembali</button><button class="primary" onclick="nextClient()">Review Booking →</button></div>
@@ -222,11 +218,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 <script>
 /* =========================================================
    KONFIGURASI
-   Setelah deploy Apps Script, tempel URL Web App di bawah.
 ========================================================= */
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuDZ6fIoKKL7dMxfbHAdNJCImqBFTOixXrWp_ampEApQC3_OvFx95A_Ph6tUxy0EM/exec';
 const GOOGLE_API_TOKEN = 'MA2026_Arda9Kx72LpQ8Vn5';
-const ADMIN_WHATSAPP = '62895362429944'; // Nomor WhatsApp admin Moments Asa
+const ADMIN_WHATSAPP = '62895362429944';
 const KEY='momentsAsaSystemV2';
 
 const defaultData={
@@ -257,7 +252,7 @@ bookings:[]
 };
 const EVENT_TYPES=['Wedding','Prewedding','Wisuda','Event Documentation','Lainnya'];
 let db=loadDB(), cStep=1, selectedService=null, selectedPackage=null, selectedAddons=[], lastBooking=null, bookingSearchTerm='';
-// Data paket/add-on versi lama perlu dikategorikan admin terlebih dahulu agar tidak salah tampil ke client.
+
 (db.packages||[]).forEach(x=>{if(!x.eventType)x.eventType='Belum Dikategorikan'});
 (db.addons||[]).forEach(x=>{if(!x.eventType)x.eventType='Belum Dikategorikan'});
 
@@ -271,38 +266,32 @@ function hide(id){document.getElementById(id).classList.add('hidden-page')}
 function backendReady(){return GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/macros/s/') && !GOOGLE_SCRIPT_URL.includes('TEMPEL_URL')}
 
 function gasRequest(params){
- // Request create/saveConfig memakai POST agar payload booking/PDF tidak memenuhi URL.
- const usePost = ['create','saveConfig'].includes(params.action);
- if(!usePost){
-  return new Promise((resolve,reject)=>{
-   if(!backendReady()){reject(new Error('URL Google Apps Script belum dipasang.'));return}
-   const cb='asa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
-   const script=document.createElement('script');
-   const timer=setTimeout(()=>{cleanup();reject(new Error('Koneksi ke Google Sheets timeout.'))},20000);
-   function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
-   window[cb]=(response)=>{cleanup();if(response&&response.ok)resolve(response);else reject(new Error(response?.error||'Permintaan gagal.'))};
-   const query=new URLSearchParams({...params,token:GOOGLE_API_TOKEN,callback:cb});
-   script.onerror=()=>{cleanup();reject(new Error('Tidak dapat menghubungi Google Apps Script. Periksa deployment dan log eksekusi.'))};
-   script.src=GOOGLE_SCRIPT_URL+'?'+query.toString();
-   document.head.appendChild(script);
-  });
- }
  return new Promise((resolve,reject)=>{
   if(!backendReady()){reject(new Error('URL Google Apps Script belum dipasang.'));return}
-  const frameName='asa_post_'+Date.now()+'_'+Math.floor(Math.random()*100000);
-  const iframe=document.createElement('iframe');
-  iframe.name=frameName;iframe.style.display='none';
-  const form=document.createElement('form');
-  form.method='POST';form.action=GOOGLE_SCRIPT_URL;form.target=frameName;form.style.display='none';
-  const values={token:GOOGLE_API_TOKEN,action:params.action,payload:params.payload||'{}'};
-  Object.entries(values).forEach(([name,value])=>{const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)});
-  let settled=false;
-  const timer=setTimeout(()=>finish(new Error('Koneksi POST ke Google Apps Script timeout.')),45000);
-  function finish(err,result){if(settled)return;settled=true;clearTimeout(timer);window.removeEventListener('message',onMessage);form.remove();iframe.remove();err?reject(err):resolve(result)}
-  function onMessage(event){if(event.source!==iframe.contentWindow)return;const msg=event.data;if(!msg||!['ASA_GAS_RESULT','ASA_GAS_ERROR'].includes(msg.type))return;if(msg.type==='ASA_GAS_ERROR')finish(new Error(msg.error||'Apps Script gagal memproses booking.'));else if(msg.result&&msg.result.ok)finish(null,msg.result);else finish(new Error(msg.result?.error||'Permintaan gagal.'))}
-  window.addEventListener('message',onMessage);document.body.appendChild(iframe);document.body.appendChild(form);form.submit();
+  const cb='asa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const script=document.createElement('script');
+  const timer=setTimeout(()=>{cleanup();reject(new Error('Koneksi ke Google Sheets timeout.'))},25000);
+  function cleanup(){clearTimeout(timer);delete window[cb];script.remove()}
+  window[cb]=(response)=>{cleanup();if(response&&response.ok)resolve(response);else reject(new Error(response?.error||'Permintaan gagal.'))};
+  const query=new URLSearchParams({...params,token:GOOGLE_API_TOKEN,callback:cb});
+  script.onerror=()=>{cleanup();reject(new Error('Tidak dapat menghubungi Google Apps Script.'))};
+  script.src=GOOGLE_SCRIPT_URL+'?'+query.toString();
+  document.head.appendChild(script);
  });
 }
+
+async function gasPostRequest(payload) {
+  if(!backendReady()) throw new Error('URL Google Apps Script belum dipasang.');
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ token: GOOGLE_API_TOKEN, ...payload })
+  });
+  const data = await res.json();
+  if (data && data.ok) return data;
+  throw new Error(data.error || 'Gagal menyimpan data.');
+}
+
 async function loadCloudConfig(){
  const result=await gasRequest({action:'getConfig'});
  if(result.initialized && result.data){
@@ -313,7 +302,6 @@ async function loadCloudConfig(){
   saveDB();
   return 'cloud';
  }
- // Migrasi satu kali: gunakan data lokal perangkat pertama yang melakukan setup.
  await gasRequest({action:'saveConfig',payload:JSON.stringify({settings:db.settings,services:db.services,packages:db.packages,addons:db.addons})});
  return 'migrated';
 }
@@ -338,7 +326,8 @@ async function syncBookingsFromSheet(){
     packagePrice:Number(row.packagePrice)||old.packagePrice||0,additional:row.additional||old.additional||'',
     total:Number(row.total)||old.total||0,status:row.status||old.status||'Menunggu DP',
     eventType:row.eventType||old.eventType||'',start:row.start||row.startTime||old.start||'',end:row.end||row.endTime||old.end||'',
-    location:row.location||old.location||'',maps:row.maps||old.maps||'',service:row.service||old.service||'',email:row.email||old.email||'',eventType:row.eventType||old.eventType||'',dp:Number(row.dp)||old.dp||0,sisa:Number(row.sisa)||old.sisa||0,createdAt:row.createdAt||old.createdAt||'',pdfUrl:row.pdfUrl||old.pdfUrl||'',pdfFolderUrl:row.pdfFolderUrl||old.pdfFolderUrl||''
+    location:row.location||old.location||'',maps:row.maps||old.maps||'',service:row.service||old.service||'',email:row.email||old.email||'',dp:Number(row.dp)||old.dp||0,sisa:Number(row.sisa)||old.sisa||0,createdAt:row.createdAt||old.createdAt||'',
+    pdfUrl:row.pdfUrl||old.pdfUrl||'',folderUrl:row.folderUrl||old.folderUrl||''
    };
   });
   saveDB();
@@ -350,7 +339,7 @@ async function loginAdmin(){try{await syncAllFromSheet()}catch(e){console.warn(e
 function logoutAdmin(){backClient()}
 
 function renderClientProgress(){let h='';for(let i=1;i<=5;i++){h+=`<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${i===cStep?'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105':i<cStep?'bg-indigo-100 text-indigo-700':'bg-slate-200 text-slate-500'}">${i}</div>${i<5?`<div class="h-1 flex-1 rounded-full transition-all duration-300 ${i<cStep?'bg-indigo-300':'bg-slate-200'}"></div>`:''}`}document.getElementById('progress').innerHTML=h}
-const clientTitles=[['Data Client','Isi data dasar untuk memulai booking.'],['Detail Acara','Ceritakan kapan dan di mana acara berlangsung.'],['Pilih Layanan','Pilih layanan, paket, dan add-on yang kamu butuhkan.'],['Referensi & Catatan','Tambahkan konsep, referensi, dan request khusus.'],['Review Booking','Pastikan semua data sudah benar.']];
+const clientTitles=[['Data Client','Isi data dasar untuk memulai booking.'],['Detail Acara','Ceritakan kapan dan di mana acara berlangsung.'],['Pilih Layanan','Pilih layanan, paket, dan add-on yang kamu butuhkan.'],['Referensi & Catatan','Tambahkan konsep, PDF referensi, dan request khusus.'],['Review Booking','Pastikan semua data sudah benar.']];
 function setClientStep(n){cStep=n;for(let i=1;i<=5;i++)document.getElementById('c'+i).classList.toggle('hidden-page',i!==n);renderClientProgress();document.getElementById('clientTitle').textContent=clientTitles[n-1][0];document.getElementById('clientSubtitle').textContent=clientTitles[n-1][1];window.scrollTo({top:0,behavior:'smooth'})}
 function validateClient(){
  if(cStep===1&&(!document.getElementById('name').value.trim()||!document.getElementById('phone').value.trim())){alert('Nama dan nomor WhatsApp wajib diisi.');return false}
@@ -366,15 +355,55 @@ function selectPackage(id){selectedPackage=id;document.querySelectorAll('.packag
 function renderAddons(){const type=document.getElementById('eventType').value;const a=db.addons.filter(x=>x.active&&x.eventType===type);document.getElementById('addonArea').classList.toggle('hidden',!selectedPackage);document.getElementById('addonList').innerHTML=a.length?a.map(x=>`<button type="button" class="addon-card border-2 border-slate-200/80 rounded-2xl p-5 text-left relative ${selectedAddons.includes(x.id)?'selected':''}" onclick="toggleAddon('${x.id}')"><span class="check absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center shadow-sm">✓</span><b class="text-slate-900">${esc(x.name)}</b><div class="text-xs text-slate-500 mt-1 leading-relaxed">${esc(x.desc)}</div><div class="font-bold text-indigo-600 mt-3">${rupiah(x.price)}</div></button>`).join(''):'<div class="col-span-full text-sm text-slate-400">Belum ada additional untuk jenis acara ini.</div>'}
 function toggleAddon(id){selectedAddons=selectedAddons.includes(id)?selectedAddons.filter(x=>x!==id):[...selectedAddons,id];renderAddons()}
 function showFiles(i){document.getElementById('fileNames').textContent=[...i.files].map(f=>f.name).join(', ')}
-function showPdfName(input){const f=input.files[0];document.getElementById('pdfName').textContent=f?f.name:'';if(f&&(f.type!=='application/pdf'&&!f.name.toLowerCase().endsWith('.pdf'))){alert('Pilih file PDF.');input.value='';document.getElementById('pdfName').textContent='';return}if(f&&f.size>8*1024*1024){alert('Ukuran PDF maksimal 8 MB.');input.value='';document.getElementById('pdfName').textContent=''}}
+
+function readPdfFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
 function moneyData(){let p=db.packages.find(x=>x.id===selectedPackage);let as=db.addons.filter(x=>selectedAddons.includes(x.id));let total=(p?.price||0)+as.reduce((s,x)=>s+x.price,0);let dp=Math.round(total*db.settings.dpPercent/100);return{p,as,total,dp,sisa:total-dp}}
-function buildSummary(){const m=moneyData();const rows=[['Nama',document.getElementById('name').value],['WhatsApp',document.getElementById('phone').value],['Jenis Acara',document.getElementById('eventType').value],['Tanggal',new Date(document.getElementById('eventDate').value+'T00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})],['Waktu',document.getElementById('startTime').value+' – '+document.getElementById('endTime').value],['Lokasi',document.getElementById('location').value],['Layanan',db.services.find(x=>x.id===selectedService)?.name],['Paket',m.p?.name],['Add-on',m.as.length?m.as.map(x=>x.name).join(', '):'-']];document.getElementById('summary').innerHTML=rows.map(r=>`<div class="py-3.5 flex flex-col sm:flex-row gap-1 sm:gap-5 border-b border-slate-100"><div class="w-32 shrink-0 text-xs font-bold text-slate-400 uppercase tracking-wider">${r[0]}</div><div class="text-sm font-semibold text-slate-800">${esc(r[1])}</div></div>`).join('')+`<div class="bg-gradient-to-br from-slate-50 to-slate-100/60 rounded-2xl p-4.5 mt-5 border border-slate-200/60"><div class="flex justify-between text-sm text-slate-600"><span>Total Harga</span><b class="text-slate-900">${rupiah(m.total)}</b></div><div class="flex justify-between text-sm text-slate-600 mt-2"><span>DP ${db.settings.dpPercent}%</span><b class="text-indigo-600">${rupiah(m.dp)}</b></div><div class="flex justify-between text-sm text-slate-600 mt-2 pt-2 border-t border-slate-200/60"><span>Sisa Pembayaran</span><b class="text-slate-900">${rupiah(m.sisa)}</b></div></div>`;document.getElementById('terms').innerHTML=db.settings.terms.map(x=>`<li class="flex items-start gap-2"><span class="text-indigo-500 font-bold">•</span><span>${esc(x)}</span></li>`).join('')}
+function buildSummary(){
+  const m=moneyData();
+  const pdfInput=document.getElementById('pdfFile');
+  const pdfName=pdfInput && pdfInput.files.length ? pdfInput.files[0].name : '-';
+  const rows=[
+    ['Nama',document.getElementById('name').value],
+    ['WhatsApp',document.getElementById('phone').value],
+    ['Jenis Acara',document.getElementById('eventType').value],
+    ['Tanggal',new Date(document.getElementById('eventDate').value+'T00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})],
+    ['Waktu',document.getElementById('startTime').value+' – '+document.getElementById('endTime').value],
+    ['Lokasi',document.getElementById('location').value],
+    ['Layanan',db.services.find(x=>x.id===selectedService)?.name],
+    ['Paket',m.p?.name],
+    ['Add-on',m.as.length?m.as.map(x=>x.name).join(', '):'-'],
+    ['File PDF Referensi',pdfName]
+  ];
+  document.getElementById('summary').innerHTML=rows.map(r=>`<div class="py-3.5 flex flex-col sm:flex-row gap-1 sm:gap-5 border-b border-slate-100"><div class="w-36 shrink-0 text-xs font-bold text-slate-400 uppercase tracking-wider">${r[0]}</div><div class="text-sm font-semibold text-slate-800">${esc(r[1])}</div></div>`).join('')+`<div class="bg-gradient-to-br from-slate-50 to-slate-100/60 rounded-2xl p-4.5 mt-5 border border-slate-200/60"><div class="flex justify-between text-sm text-slate-600"><span>Total Harga</span><b class="text-slate-900">${rupiah(m.total)}</b></div><div class="flex justify-between text-sm text-slate-600 mt-2"><span>DP ${db.settings.dpPercent}%</span><b class="text-indigo-600">${rupiah(m.dp)}</b></div><div class="flex justify-between text-sm text-slate-600 mt-2 pt-2 border-t border-slate-200/60"><span>Sisa Pembayaran</span><b class="text-slate-900">${rupiah(m.sisa)}</b></div></div>`;
+  document.getElementById('terms').innerHTML=db.settings.terms.map(x=>`<li class="flex items-start gap-2"><span class="text-indigo-500 font-bold">•</span><span>${esc(x)}</span></li>`).join('')
+}
+
 async function submitBooking(){
  if(!document.getElementById('agree').checked){alert('Silakan setujui ketentuan booking.');return}
  if(!backendReady()){alert('Website belum terhubung. Admin perlu memasang URL Web App Google Apps Script di konfigurasi.');return}
  const btn=document.getElementById('submitBookingBtn');btn.disabled=true;btn.textContent='Mengirim...';
  try{
   const m=moneyData(),now=new Date(),id='ASA-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);
+  
+  let pdfBase64 = '';
+  let pdfFileName = '';
+  const pdfInput = document.getElementById('pdfFile');
+  if (pdfInput && pdfInput.files.length > 0) {
+    btn.textContent = 'Mengunggah PDF...';
+    const file = pdfInput.files[0];
+    pdfFileName = file.name;
+    pdfBase64 = await readPdfFileAsBase64(file);
+  }
+
+  btn.textContent = 'Mengirim Booking...';
   const booking={
    id,name:document.getElementById('name').value.trim(),phone:document.getElementById('phone').value.trim(),
    email:document.getElementById('email').value.trim(),eventType:document.getElementById('eventType').value,
@@ -383,22 +412,28 @@ async function submitBooking(){
    service:db.services.find(x=>x.id===selectedService)?.name||'',packageId:selectedPackage,packageName:m.p?.name||'',
    packagePrice:m.p?.price||0,additional:m.as.map(x=>`${x.name} (${rupiah(x.price)})`).join(', ')||'-',
    addonIds:selectedAddons,concept:document.getElementById('concept').value,reference:document.getElementById('referenceLink').value,
-   notes:document.getElementById('notes').value,total:m.total,dp:m.dp,sisa:m.sisa,status:'Menunggu DP',createdAt:now.toISOString()
+   notes:document.getElementById('notes').value,total:m.total,dp:m.dp,sisa:m.sisa,status:'Menunggu DP',createdAt:now.toISOString(),
+   pdfBase64, pdfFileName
   };
-  const pdfInput=document.getElementById('bookingPdf');
-  if(pdfInput&&pdfInput.files&&pdfInput.files[0]){
-   const pdf=pdfInput.files[0];
-   if(pdf.size>8*1024*1024)throw new Error('Ukuran PDF maksimal 8 MB.');
-   booking.pdfFile={name:pdf.name,mimeType:'application/pdf',base64:await fileToBase64(pdf)};
+
+  let result;
+  if (pdfBase64) {
+    result = await gasPostRequest({ action: 'create', payload: booking });
+  } else {
+    result = await gasRequest({ action: 'create', payload: JSON.stringify(booking) });
   }
-  const result=await gasRequest({action:'create',payload:JSON.stringify(booking)});
-  booking.number=result.number;db.bookings.unshift(booking);saveDB();lastBooking=booking;
+
+  booking.number=result.number;
+  booking.pdfUrl=result.pdfUrl||'';
+  booking.folderUrl=result.folderUrl||`https://drive.google.com/drive/folders/1s0ri-MWQPqr9p5nnEyMysRLqGGXaUDFi`;
+  delete booking.pdfBase64;
+  
+  db.bookings.unshift(booking);saveDB();lastBooking=booking;
   document.getElementById('clientForm').classList.add('hidden-page');document.getElementById('clientHeader').classList.add('hidden-page');show('success');
   document.getElementById('successId').textContent=id;document.getElementById('successTotal').textContent=rupiah(m.total);document.getElementById('successDp').textContent=rupiah(m.dp);
  }catch(err){alert('Booking belum berhasil disimpan ke Google Sheets. '+err.message)}
  finally{btn.disabled=false;btn.textContent='Kirim Booking ✓'}
 }
-function fileToBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('PDF gagal dibaca.'));reader.readAsDataURL(file)})}
 function sendWA(){if(!lastBooking){alert('Data booking tidak ditemukan.');return}let msg=`Halo Moments Asa, saya ${lastBooking.name}. Saya sudah mengisi booking dengan ID ${lastBooking.id}. Saya ingin konfirmasi booking. Mohon dibantu untuk proses selanjutnya.\n\nNama: ${lastBooking.name}\nNo. WhatsApp: ${lastBooking.phone}\nTanggal acara: ${formatOrderDate(lastBooking.date)}\nPaket: ${lastBooking.packageName}\nTotal: ${rupiah(lastBooking.total)}\nDP: ${rupiah(lastBooking.dp)}`;window.open('https://wa.me/'+ADMIN_WHATSAPP+'?text='+encodeURIComponent(msg),'_blank','noopener')}
 
 function adminPage(page){document.querySelectorAll('.sidebar-item[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:'Dashboard',bookings:'Booking',packages:'Paket & Harga',addons:'Add-on',settings:'Pengaturan'};document.getElementById('adminPageTitle').textContent=titles[page];({dashboard:renderDashboard,bookings:renderBookings,packages:renderPackages,addons:renderAddonsAdmin,settings:renderSettings}[page])()}
@@ -413,7 +448,6 @@ function formatOrderDate(value){
 function formatOrderTime(value){
  if(value==null||value==='')return '';
  const raw=String(value).trim();
- // Handles time values serialized by Google Sheets as 1899-12-30T06:49:48.000Z.
  const iso=raw.match(/T(\d{2}:\d{2})/);if(iso)return iso[1];
  const hm=raw.match(/^(\d{1,2}:\d{2})/);if(hm)return hm[1].padStart(5,'0');
  return raw;
@@ -421,9 +455,15 @@ function formatOrderTime(value){
 function orderText(b){
  const start=formatOrderTime(b.start||b.startTime||'');const end=formatOrderTime(b.end||b.endTime||'');
  const time=start&&end?`${start} - ${end}`:(start||end||'-');
- return `Format Order Moments Asa :\n\n• Nama pemesan: ${b.name||'-'}\n• No hp: ${b.phone||'-'}\n• Hari & tanggal acara: ${formatOrderDate(b.date)}\n• Lokasi: ${b.location||'-'}\n• Jam acara: ${time}\n• Jenis paket: ${b.packageName||'-'}`;
+ let text = `Format Order Moments Asa :\n\n• Nama pemesan: ${b.name||'-'}\n• No hp: ${b.phone||'-'}\n• Hari & tanggal acara: ${formatOrderDate(b.date)}\n• Lokasi: ${b.location||'-'}\n• Jam acara: ${time}\n• Jenis paket: ${b.packageName||'-'}`;
+ if(b.pdfUrl) text += `\n• Link PDF: ${b.pdfUrl}`;
+ return text;
 }
-function bookingTable(list){if(!list.length)return'<div class="text-sm text-slate-400 py-10 text-center">Belum ada booking yang cocok.</div>';return`<table class="w-full text-sm"><thead><tr class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"><th class="py-3.5 pr-4">Nomor</th><th class="py-3.5 pr-4">Pemesan</th><th class="py-3.5 pr-4">Paket</th><th class="py-3.5 pr-4">Tanggal</th><th class="py-3.5 pr-4">Total</th><th class="py-3.5 pr-4">Progres</th><th class="py-3.5">Shortcut</th></tr></thead><tbody>${list.map(b=>`<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition"><td class="py-3.5 pr-4 font-bold text-slate-800">${esc(b.number||b.id)}</td><td class="py-3.5 pr-4"><span class="font-semibold text-slate-800">${esc(b.name)}</span><div class="text-xs text-slate-400">${esc(b.phone)}</div></td><td class="py-3.5 pr-4 text-slate-600">${esc(b.packageName||'-')}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.date||'-')}</td><td class="py-3.5 pr-4 font-bold text-slate-900">${rupiah(b.total||0)}</td><td class="py-3.5 pr-4"><select onchange="changeBookingStatus('${esc(b.id)}',this.value)" class="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium focus:outline-none focus:border-indigo-500"><option ${b.status==='Menunggu DP'?'selected':''}>Menunggu DP</option><option ${b.status==='DP Diterima'?'selected':''}>DP Diterima</option><option ${b.status==='Booking Confirmed'?'selected':''}>Booking Confirmed</option><option ${b.status==='Persiapan Event'?'selected':''}>Persiapan Event</option><option ${b.status==='Event Berlangsung'?'selected':''}>Event Berlangsung</option><option ${b.status==='Editing'?'selected':''}>Editing</option><option ${b.status==='Revisi'?'selected':''}>Revisi</option><option ${b.status==='Selesai'?'selected':''}>Selesai</option><option ${b.status==='Cancelled'?'selected':''}>Cancelled</option></select></td><td class="py-3.5"><button class="primary whitespace-nowrap text-xs py-2 px-3" onclick="openOrderFormat('${esc(b.id)}')">Buat Format Order</button></td></tr>`).join('')}</tbody></table>`}
+function bookingTable(list){if(!list.length)return'<div class="text-sm text-slate-400 py-10 text-center">Belum ada booking yang cocok.</div>';return`<table class="w-full text-sm"><thead><tr class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"><th class="py-3.5 pr-4">Nomor</th><th class="py-3.5 pr-4">Pemesan</th><th class="py-3.5 pr-4">Paket</th><th class="py-3.5 pr-4">Tanggal</th><th class="py-3.5 pr-4">Total</th><th class="py-3.5 pr-4">PDF / Drive</th><th class="py-3.5 pr-4">Progres</th><th class="py-3.5">Shortcut</th></tr></thead><tbody>${list.map(b=>{
+  const pdfLink = b.pdfUrl ? `<a href="${esc(b.pdfUrl)}" target="_blank" class="text-xs font-bold text-indigo-600 underline">Lihat PDF</a>` : (b.folderUrl ? `<a href="${esc(b.folderUrl)}" target="_blank" class="text-xs text-slate-400 underline">Buka Folder</a>` : '<span class="text-slate-300">-</span>');
+  return `<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition"><td class="py-3.5 pr-4 font-bold text-slate-800">${esc(b.number||b.id)}</td><td class="py-3.5 pr-4"><span class="font-semibold text-slate-800">${esc(b.name)}</span><div class="text-xs text-slate-400">${esc(b.phone)}</div></td><td class="py-3.5 pr-4 text-slate-600">${esc(b.packageName||'-')}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.date||'-')}</td><td class="py-3.5 pr-4 font-bold text-slate-900">${rupiah(b.total||0)}</td><td class="py-3.5 pr-4">${pdfLink}</td><td class="py-3.5 pr-4"><select onchange="changeBookingStatus('${esc(b.id)}',this.value)" class="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium focus:outline-none focus:border-indigo-500"><option ${b.status==='Menunggu DP'?'selected':''}>Menunggu DP</option><option ${b.status==='DP Diterima'?'selected':''}>DP Diterima</option><option ${b.status==='Booking Confirmed'?'selected':''}>Booking Confirmed</option><option ${b.status==='Persiapan Event'?'selected':''}>Persiapan Event</option><option ${b.status==='Event Berlangsung'?'selected':''}>Event Berlangsung</option><option ${b.status==='Editing'?'selected':''}>Editing</option><option ${b.status==='Revisi'?'selected':''}>Revisi</option><option ${b.status==='Selesai'?'selected':''}>Selesai</option><option ${b.status==='Cancelled'?'selected':''}>Cancelled</option></select></td><td class="py-3.5"><button class="primary whitespace-nowrap text-xs py-2 px-3" onclick="openOrderFormat('${esc(b.id)}')">Buat Format Order</button></td></tr>`;
+}).join('')}</tbody></table>`}
+
 function renderBookings(){
  const term=bookingSearchTerm.toLowerCase();
  const filtered=db.bookings.filter(b=>[b.name,b.phone,b.id,b.number,b.packageName].some(v=>String(v||'').toLowerCase().includes(term)));
@@ -456,15 +496,12 @@ function addonForm(id){let a=db.addons.find(x=>x.id===id)||{id:'a'+Date.now(),ev
 async function saveAddon(id,n){let a={id,eventType:document.getElementById('afEventType').value,name:document.getElementById('afName').value.trim(),desc:document.getElementById('afDesc').value.trim(),price:Number(document.getElementById('afPrice').value),active:document.getElementById('afActive').checked};if(!a.name||!a.price){alert('Nama dan harga wajib diisi.');return}if(n)db.addons.push(a);else db.addons[db.addons.findIndex(x=>x.id===id)]=a;try{await saveCloudConfig();toast('Additional tersimpan di Google Sheets');adminPage('addons')}catch(e){toast('Gagal menyimpan: '+e.message)}}
 async function toggleAddonAdmin(id){let a=db.addons.find(x=>x.id===id);a.active=!a.active;try{await saveCloudConfig();renderAddonsAdmin();toast('Additional diperbarui di Google Sheets')}catch(e){a.active=!a.active;toast('Gagal menyimpan: '+e.message)}}
 async function deleteAddon(id){if(confirm('Hapus add-on ini?')){const old=[...db.addons];db.addons=db.addons.filter(x=>x.id!==id);try{await saveCloudConfig();renderAddonsAdmin();toast('Additional dihapus dari Google Sheets')}catch(e){db.addons=old;toast('Gagal menghapus: '+e.message)}}}
-function renderSettings(){let s=db.settings;document.getElementById('adminContent').innerHTML=`<div class="card max-w-3xl mx-auto"><h2 class="font-black text-xl text-slate-900">Pengaturan</h2><div class="space-y-5 mt-5"><div><label class="label">Nama Brand</label><input id="setBrand" class="input" value="${esc(s.brand)}"></div><div><label class="label">Persentase DP</label><input id="setDp" type="number" class="input" value="${s.dpPercent}" min="0" max="100"></div><div><label class="label">Nomor WhatsApp Admin</label><input id="setWa" class="input" placeholder="62812xxxx" value="${esc(s.whatsapp||ADMIN_WHATSAPP)}"></div><div><label class="label">PIN Admin Baru</label><input id="setPin" maxlength="6" class="input" value="${esc(s.adminPin)}"></div><div><label class="label">Ketentuan Booking</label><div id="termsInputs" class="space-y-2.5">${s.terms.map(x=>`<div class="flex gap-2"><input class="input termInput" value="${esc(x)}"><button class="secondary text-slate-400 hover:text-red-600 px-3" onclick="this.parentElement.remove()">×</button></div>`).join('')}</div><button class="secondary mt-3 text-xs" onclick="addTerm()">＋ Tambah Ketentuan</button></div><div class="border-t border-slate-100 pt-5"><b class="text-slate-900">Fitur Mendatang</b><p class="text-xs text-slate-400 mt-0.5">Disiapkan di sistem, tetapi sengaja tidak ditampilkan ke client sampai kamu mengaktifkannya.</p><div class="grid sm:grid-cols-2 gap-3 mt-4">${featureToggle('availability','Cek ketersediaan tanggal','availabilityToggle')}${featureToggle('payment','Pembayaran online / QRIS','paymentToggle')}${featureToggle('clientTracking','Client tracking page','trackingToggle')}${featureToggle('autoWa','Notifikasi WhatsApp otomatis','autoWaToggle')}</div></div><div class="border-t border-slate-100 pt-5"><b class="text-slate-900">Google Sheets</b><p class="text-xs text-slate-500 mt-0.5">URL Apps Script dipasang di konfigurasi file HTML.</p><button class="secondary mt-3 text-xs" onclick="refreshBookings()">Uji koneksi / refresh booking</button></div></div><div class="actions"><button class="primary w-full sm:w-auto ml-auto" onclick="saveSettings()">Simpan Pengaturan</button></div></div>`}
+function renderSettings(){let s=db.settings;document.getElementById('adminContent').innerHTML=`<div class="card max-w-3xl mx-auto"><h2 class="font-black text-xl text-slate-900">Pengaturan</h2><div class="space-y-5 mt-5"><div><label class="label">Nama Brand</label><input id="setBrand" class="input" value="${esc(s.brand)}"></div><div><label class="label">Persentase DP</label><input id="setDp" type="number" class="input" value="${s.dpPercent}" min="0" max="100"></div><div><label class="label">Nomor WhatsApp Admin</label><input id="setWa" class="input" placeholder="62812xxxx" value="${esc(s.whatsapp||ADMIN_WHATSAPP)}"></div><div><label class="label">PIN Admin Baru</label><input id="setPin" maxlength="6" class="input" value="${esc(s.adminPin)}"></div><div><label class="label">Ketentuan Booking</label><div id="termsInputs" class="space-y-2.5">${s.terms.map(x=>`<div class="flex gap-2"><input class="input termInput" value="${esc(x)}"><button class="secondary text-slate-400 hover:text-red-600 px-3" onclick="this.parentElement.remove()">×</button></div>`).join('')}</div><button class="secondary mt-3 text-xs" onclick="addTerm()">＋ Tambah Ketentuan</button></div><div class="border-t border-slate-100 pt-5"><b class="text-slate-900">Fitur Mendatang</b><p class="text-xs text-slate-400 mt-0.5">Disiapkan di sistem, tetapi sengaja tidak ditampilkan ke client sampai kamu mengaktifkannya.</p><div class="grid sm:grid-cols-2 gap-3 mt-4">${featureToggle('availability','Cek ketersediaan tanggal','availabilityToggle')}${featureToggle('payment','Pembayaran online / QRIS','paymentToggle')}${featureToggle('clientTracking','Client tracking page','trackingToggle')}${featureToggle('autoWa','Notifikasi WhatsApp otomatis','autoWaToggle')}</div></div><div class="border-t border-slate-100 pt-5"><b class="text-slate-900">Google Sheets & Drive</b><p class="text-xs text-slate-500 mt-0.5">URL Apps Script dan Folder ID terhubung otomatis.</p><button class="secondary mt-3 text-xs" onclick="refreshBookings()">Uji koneksi / refresh booking</button></div></div><div class="actions"><button class="primary w-full sm:w-auto ml-auto" onclick="saveSettings()">Simpan Pengaturan</button></div></div>`}
 function featureToggle(key,label,id){return`<label class="flex items-center justify-between border border-slate-200/80 rounded-2xl p-4 cursor-pointer hover:bg-slate-50 transition"><span><b class="text-sm text-slate-800">${label}</b><small class="block text-xs text-slate-400">Hidden feature</small></span><input id="${id}" type="checkbox" ${db.settings.features[key]?'checked':''} class="w-5 h-5 accent-indigo-600 rounded"></label>`}
 function addTerm(){document.getElementById('termsInputs').insertAdjacentHTML('beforeend','<div class="flex gap-2"><input class="input termInput" placeholder="Ketentuan baru"><button class="secondary text-slate-400 hover:text-red-600 px-3" onclick="this.parentElement.remove()">×</button></div>')}
 async function saveSettings(){const old=JSON.parse(JSON.stringify(db.settings));db.settings.brand=document.getElementById('setBrand').value;db.settings.dpPercent=Number(document.getElementById('setDp').value);db.settings.whatsapp=document.getElementById('setWa').value;db.settings.adminPin=document.getElementById('setPin').value;db.settings.terms=[...document.querySelectorAll('.termInput')].map(x=>x.value.trim()).filter(Boolean);db.settings.features={availability:document.getElementById('availabilityToggle').checked,payment:document.getElementById('paymentToggle').checked,clientTracking:document.getElementById('trackingToggle').checked,autoWa:document.getElementById('autoWaToggle').checked};try{await saveCloudConfig();toast('Pengaturan tersimpan di Google Sheets')}catch(e){db.settings=old;toast('Gagal menyimpan pengaturan: '+e.message)}}
 function resetClient(){document.getElementById('clientForm').reset();document.getElementById('clientForm').classList.remove('hidden-page');document.getElementById('clientHeader').classList.remove('hidden-page');hide('success');selectedService=null;selectedPackage=null;selectedAddons=[];setClientStep(1);renderServices()}
 
-/* =========================================================
-   SECRET GESTURE LISTENER (5 Detik Long Press OR Triple Tap)
-========================================================= */
 function initSecretAdminGesture(){
   const btn = document.getElementById('secretAdminTrigger');
   if(!btn) return;
@@ -478,12 +515,11 @@ function initSecretAdminGesture(){
     toast('Admin shortcut terdeteksi!');
   }
 
-  // --- 1. LONG PRESS 5 DETIK ---
   function startHold(e){
     if(timer) clearTimeout(timer);
     timer = setTimeout(()=>{
       triggerAdmin();
-    }, 5000); // 5000 ms = 5 detik
+    }, 5000);
   }
 
   function cancelHold(){
@@ -500,13 +536,12 @@ function initSecretAdminGesture(){
   btn.addEventListener('mouseleave', cancelHold);
   btn.addEventListener('touchend', cancelHold);
 
-  // --- 2. TRIPLE TAP (KETUK 3 KALI) ---
   btn.addEventListener('click', (e)=>{
     tapCount++;
     if(tapCount === 1){
       tapTimer = setTimeout(()=>{
         tapCount = 0;
-      }, 600); // Reset batas ketukan jika melebihi 0.6 detik
+      }, 600);
     } else if(tapCount === 3){
       clearTimeout(tapTimer);
       tapCount = 0;
