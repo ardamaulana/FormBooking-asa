@@ -171,7 +171,29 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 </section>
 </form>
 
-<section id="success" class="hidden-page fade"><div class="card text-center p-8 sm:p-10 max-w-xl mx-auto"><div class="mx-auto w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl shadow-lg shadow-emerald-50">✓</div><h2 class="text-2xl sm:text-3xl font-black mt-5 text-slate-900">Booking Berhasil Dikirim!</h2><p class="text-slate-500 text-sm mt-1">Booking kamu sudah tercatat.</p><div class="bg-slate-50 rounded-2xl p-5 mt-6 border border-slate-100 text-left"><div class="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Booking ID</div><div id="successId" class="font-black text-xl text-slate-800 mt-0.5"></div><div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200/60"><div><small class="text-slate-400 text-xs font-medium">Total</small><div id="successTotal" class="font-bold text-slate-800 text-base"></div></div><div><small class="text-slate-400 text-xs font-medium">DP</small><div id="successDp" class="font-bold text-slate-800 text-base"></div></div></div><div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between"><small class="text-slate-400 text-xs font-medium">Status</small><div class="text-xs inline-block px-3 py-1 rounded-full bg-amber-100/80 text-amber-800 font-bold">Menunggu DP</div></div></div><div class="flex flex-col sm:flex-row gap-3 mt-6"><button class="primary flex-1" onclick="alert('Fitur pembayaran siap dihubungkan ke rekening/QRIS admin.')">💳 Instruksi Pembayaran</button><button class="wa flex-1" onclick="sendWA()">💬 Konfirmasi WhatsApp</button></div></div></section>
+<section id="success" class="hidden-page fade">
+  <div class="card text-center p-8 sm:p-10 max-w-xl mx-auto">
+    <div class="mx-auto w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl shadow-lg shadow-emerald-50">✓</div>
+    <h2 class="text-2xl sm:text-3xl font-black mt-5 text-slate-900">Booking Berhasil Dikirim!</h2>
+    <p class="text-slate-500 text-sm mt-1">Booking kamu sudah tercatat.</p>
+    <div class="bg-slate-50 rounded-2xl p-5 mt-6 border border-slate-100 text-left">
+      <div class="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Booking ID</div>
+      <div id="successId" class="font-black text-xl text-slate-800 mt-0.5"></div>
+      <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200/60">
+        <div><small class="text-slate-400 text-xs font-medium">Total</small><div id="successTotal" class="font-bold text-slate-800 text-base"></div></div>
+        <div><small class="text-slate-400 text-xs font-medium">DP</small><div id="successDp" class="font-bold text-slate-800 text-base"></div></div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+        <small class="text-slate-400 text-xs font-medium">Status</small>
+        <div class="text-xs inline-block px-3 py-1 rounded-full bg-amber-100/80 text-amber-800 font-bold">Menunggu DP</div>
+      </div>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3 mt-6">
+      <button class="primary flex-1" onclick="openInvoiceModal(lastBooking?.id)">📄 Cetak / Download Invoice PDF</button>
+      <button class="wa flex-1" onclick="sendWA()">💬 Konfirmasi WhatsApp</button>
+    </div>
+  </div>
+</section>
 </main>
 </div>
 
@@ -186,7 +208,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 <div class="mt-6"><label class="label">PIN Admin</label><input id="adminPin" type="password" inputmode="numeric" maxlength="6" class="input text-center tracking-[0.5em] text-xl font-bold" placeholder="••••••"></div>
 <button class="primary w-full mt-5" onclick="loginAdmin()">Masuk</button>
 <button class="secondary w-full mt-2" onclick="backClient()">Kembali ke Booking</button>
-<p class="text-xs text-slate-400 text-center mt-5">Silahkan Hubungi <b>ADMIN</b>. Soalnya cuma Admin yang tau.</p>
+<p class="text-xs text-slate-400 text-center mt-5">Silahkan Hubungi <b>ADMIN</b>. Coba melalui Admin yang tau.</p>
 </div></div>
 
 <!-- ================= ADMIN APP ================= -->
@@ -212,6 +234,134 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 <div class="md:hidden p-3 bg-white border-b border-slate-200 overflow-x-auto whitespace-nowrap"><button class="mobileNav" onclick="adminPage('dashboard')">Dashboard</button><button class="mobileNav" onclick="adminPage('bookings')">Booking</button><button class="mobileNav" onclick="adminPage('packages')">Paket</button><button class="mobileNav" onclick="adminPage('addons')">Additional</button><button class="mobileNav" onclick="adminPage('settings')">Pengaturan</button></div>
 <div id="adminContent" class="p-5 sm:p-8 max-w-7xl mx-auto"></div>
 </main></div></div>
+
+<!-- ================= INVOICE MODAL & PRINT TEMPLATE ================= -->
+<div id="invoiceModal" class="hidden-page fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative my-8 flex flex-col max-h-[90vh]">
+    
+    <!-- Header Modal Sticky / Fixed di Atas Modal -->
+    <div class="p-4 sm:px-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center print:hidden sticky top-0 z-20 shadow-sm">
+      <div>
+        <h3 class="font-black text-base text-slate-900">Invoice Booking</h3>
+        <p class="text-[11px] text-slate-500">Pratinjau dokumen invoice resmi Moments Asa</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="primary text-xs py-2 px-3.5 shadow" onclick="printInvoice()">🖨️ Cetak / PDF</button>
+        <button class="secondary text-xs py-2 px-3 font-bold" onclick="closeInvoiceModal()">✕ Tutup</button>
+      </div>
+    </div>
+
+    <!-- Printable Invoice Container (Scrollable Area) -->
+    <div class="overflow-y-auto flex-1">
+      <div id="invoicePrintArea" class="bg-white p-8 sm:p-12 text-slate-800 text-sm font-sans">
+        <!-- Header -->
+        <div class="flex justify-between items-start border-b border-slate-200 pb-8">
+          <div>
+            <div class="font-serif italic text-3xl font-bold tracking-tight text-slate-900"></div>
+            <div class="text-xs text-slate-400 mt-1"></div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black tracking-wider text-slate-900">INVOICE</div>
+            <div id="invNumber" class="text-xs font-bold text-slate-500 mt-1">#INV/2026/11/28/01</div>
+          </div>
+        </div>
+
+        <!-- Date & Sisa Pembayaran Info -->
+        <div class="flex flex-col sm:flex-row justify-between items-end mt-6 gap-4">
+          <div>
+            <div class="text-xs text-slate-400">Kepada Yth:</div>
+            <div id="invClientName" class="font-bold text-slate-900 text-base mt-0.5">-</div>
+            <div id="invClientPhone" class="text-xs text-slate-500">-</div>
+          </div>
+          <div class="w-full sm:w-auto text-right space-y-2">
+            <div class="text-xs text-slate-500">Date: <span id="invDate" class="font-semibold text-slate-800">28 November 2026</span></div>
+            <div class="inline-flex items-center justify-between gap-6 bg-slate-200 text-slate-800 px-4 py-2 rounded-lg font-bold text-sm w-full sm:w-64">
+              <span class="text-xs uppercase tracking-wider text-slate-600">Sisa Pembayaran:</span>
+              <span id="invHeaderSisa">Rp 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="mt-8 overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-300 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 pr-4">Layanan</th>
+                <th class="py-3 pr-4">Jadwal</th>
+                <th class="py-3 pr-4">Status</th>
+                <th class="py-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-200 align-top">
+                <td class="py-4 pr-4">
+                  <div id="invPackageName" class="font-extrabold text-slate-900 text-base">ANHOUR PACKAGE A</div>
+                  <div id="invPackageDesc" class="text-xs text-slate-500 mt-1 space-y-0.5">
+                    <div>- 1 Graduates</div>
+                    <div>- Free family photos</div>
+                    <div>- 1-Hour Photography Session</div>
+                    <div>- All Original RAW Files</div>
+                    <div>- 35 Professionally Edited Photos</div>
+                    <div>- Google Drive Delivery</div>
+                    <div>- 14-Day Online File Storage</div>
+                    <div>- Include Transport</div>
+                  </div>
+                </td>
+                <td id="invSchedule" class="py-4 pr-4 text-slate-700 font-medium whitespace-nowrap">28 November 2026</td>
+                <td class="py-4 pr-4 whitespace-nowrap"><span id="invStatusBadge" class="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800">Belum Lunas</span></td>
+                <td id="invPackagePrice" class="py-4 text-right font-extrabold text-slate-900 whitespace-nowrap">Rp 450.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Breakdown & Totals -->
+        <div class="mt-8 grid sm:grid-cols-2 gap-8 items-start pt-6 border-t border-slate-200">
+          <div>
+            <div class="font-bold text-slate-900 text-sm">Rincian Harga Awal</div>
+            <div class="mt-3 space-y-2 text-xs text-slate-600">
+              <div class="flex justify-between"><span>Paket Awal</span><span id="invBasePrice" class="font-semibold text-slate-800">Rp 450.000</span></div>
+              <div class="flex justify-between"><span>Add-on Paket</span><span id="invAddonPrice" class="font-semibold text-slate-800">Rp 0</span></div>
+            </div>
+          </div>
+          <div class="space-y-2 text-xs text-slate-600">
+            <div class="flex justify-between py-1 border-b border-slate-100"><span>Sub Total</span><span id="invSubTotal" class="font-semibold text-slate-900">Rp 450.000</span></div>
+            <div class="flex justify-between py-1 border-b border-slate-100"><span>Total</span><span id="invTotal" class="font-semibold text-slate-900">Rp 450.000</span></div>
+            <div class="flex justify-between py-1 border-b border-slate-100"><span>DP Dibayar</span><span id="invDp" class="font-semibold text-indigo-600">- Rp 225.000</span></div>
+          </div>
+        </div>
+
+        <!-- Red Bottom Sisa Pembayaran Banner -->
+        <div class="mt-8 bg-red-500 text-white rounded-xl p-4 flex justify-between items-center shadow-md">
+          <span class="font-bold text-sm tracking-wide uppercase">Sisa Pembayaran</span>
+          <span id="invFooterSisa" class="font-black text-lg">Rp 225.000</span>
+        </div>
+
+        <!-- Footer note -->
+        <div class="mt-12 text-center text-[11px] text-slate-400 border-t border-slate-100 pt-6">
+          Terima kasih telah mempercayakan momen berharga Anda bersama <b>Moments Asa</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@page { size: A4; margin: 12mm; }
+@media print {
+  html, body { background: #fff !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body > *:not(#invoiceModal):not(style):not(script) { display: none !important; }
+  #invoiceModal { position: static !important; inset: auto !important; background: #fff !important; backdrop-filter: none !important; padding: 0 !important; overflow: visible !important; }
+  #invoiceModal:not(.hidden-page) { display: block !important; }
+  #invoiceModal > div { display: block !important; position: static !important; width: 100% !important; max-width: none !important; height: auto !important; max-height: none !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; }
+  #invoiceModal .overflow-y-auto, #invoiceModal .overflow-x-auto { overflow: visible !important; height: auto !important; max-height: none !important; }
+  #invoicePrintArea { padding: 0 !important; }
+  #invoicePrintArea, #invoicePrintArea * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #invoicePrintArea tr, #invoicePrintArea .bg-red-500 { break-inside: avoid; page-break-inside: avoid; }
+  .print\:hidden { display: none !important; }
+}
+</style>
 
 <div id="toast" class="fixed bottom-6 right-6 hidden bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold z-50"></div>
 
@@ -343,7 +493,7 @@ function selectPackage(id){selectedPackage=id;document.querySelectorAll('.packag
 function renderAddons(){const type=document.getElementById('eventType').value;const a=db.addons.filter(x=>x.active&&x.eventType===type);document.getElementById('addonArea').classList.toggle('hidden',!selectedPackage);document.getElementById('addonList').innerHTML=a.length?a.map(x=>`<button type="button" class="addon-card border-2 border-slate-200/80 rounded-2xl p-5 text-left relative ${selectedAddons.includes(x.id)?'selected':''}" onclick="toggleAddon('${x.id}')"><span class="check absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center shadow-sm">✓</span><b class="text-slate-900">${esc(x.name)}</b><div class="text-xs text-slate-500 mt-1 leading-relaxed">${esc(x.desc)}</div><div class="font-bold text-indigo-600 mt-3">${rupiah(x.price)}</div></button>`).join(''):'<div class="col-span-full text-sm text-slate-400">Belum ada additional untuk jenis acara ini.</div>'}
 function toggleAddon(id){selectedAddons=selectedAddons.includes(id)?selectedAddons.filter(x=>x!==id):[...selectedAddons,id];renderAddons()}
 
-function moneyData(){let p=db.packages.find(x=>x.id===selectedPackage);let as=db.addons.filter(x=>selectedAddons.includes(x.id));let total=(p?.price||0)+as.reduce((s,x)=>s+x.price,0);let dp=Math.round(total*db.settings.dpPercent/100);return{p,as,total,dp,sisa:total-dp}}
+function moneyData(){let p=db.packages.find(x=>x.id===selectedPackage);let as=db.addons.filter(x=>selectedAddons.includes(x.id));let total=(p?.price||0)+as.reduce((s,x)=>s+x.price,0);let dp=Math.round(total*db.settings.dpPercent/100);return{p,as,total,dp,sisa:total-dp,addonTotal:as.reduce((s,x)=>s+x.price,0)}}
 function buildSummary(){
   const m=moneyData();
   const rows=[
@@ -376,7 +526,7 @@ async function submitBooking(){
    location:document.getElementById('location').value,maps:document.getElementById('maps').value,
    service:db.services.find(x=>x.id===selectedService)?.name||'',packageId:selectedPackage,packageName:m.p?.name||'',
    packagePrice:m.p?.price||0,additional:m.as.map(x=>`${x.name} (${rupiah(x.price)})`).join(', ')||'-',
-   addonIds:selectedAddons,concept:document.getElementById('concept').value,reference:document.getElementById('referenceLink').value,
+   addonIds:selectedAddons,addonTotal:m.addonTotal,concept:document.getElementById('concept').value,reference:document.getElementById('referenceLink').value,
    notes:document.getElementById('notes').value,total:m.total,dp:m.dp,sisa:m.sisa,status:'Menunggu DP',createdAt:now.toISOString()
   };
 
@@ -392,7 +542,7 @@ async function submitBooking(){
 function sendWA(){if(!lastBooking){alert('Data booking tidak ditemukan.');return}let msg=`Halo Moments Asa, saya ${lastBooking.name}. Saya sudah mengisi booking dengan ID ${lastBooking.id}. Saya ingin konfirmasi booking. Mohon dibantu untuk proses selanjutnya.\n\nNama: ${lastBooking.name}\nNo. WhatsApp: ${lastBooking.phone}\nTanggal acara: ${formatOrderDate(lastBooking.date)}\nPaket: ${lastBooking.packageName}\nTotal: ${rupiah(lastBooking.total)}\nDP: ${rupiah(lastBooking.dp)}`;window.open('https://wa.me/'+ADMIN_WHATSAPP+'?text='+encodeURIComponent(msg),'_blank','noopener')}
 
 function adminPage(page){document.querySelectorAll('.sidebar-item[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));let titles={dashboard:'Dashboard',bookings:'Booking',packages:'Paket & Harga',addons:'Add-on',settings:'Pengaturan'};document.getElementById('adminPageTitle').textContent=titles[page];({dashboard:renderDashboard,bookings:renderBookings,packages:renderPackages,addons:renderAddonsAdmin,settings:renderSettings}[page])()}
-function renderDashboard(){let b=db.bookings;document.getElementById('adminContent').innerHTML=`<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div class="card"><small class="text-slate-400 font-medium">Total Booking</small><div class="text-3xl font-black mt-1.5 text-slate-900">${b.length}</div></div><div class="card"><small class="text-slate-400 font-medium">Menunggu DP</small><div class="text-3xl font-black mt-1.5 text-amber-600">${b.filter(x=>x.status==='Menunggu DP').length}</div></div><div class="card"><small class="text-slate-400 font-medium">DP Diterima</small><div class="text-3xl font-black mt-1.5 text-indigo-600">${b.filter(x=>x.status==='DP Diterima').length}</div></div><div class="card"><small class="text-slate-400 font-medium">Paket Aktif</small><div class="text-3xl font-black mt-1.5 text-emerald-600">${db.packages.filter(x=>x.active).length}</div></div></div><div class="card mt-6"><div class="flex justify-between items-center pb-4 border-b border-slate-100"><div><b class="text-slate-900">Booking Terbaru</b><p class="text-xs text-slate-400 mt-0.5">Data tersinkron dengan Google Sheets.</p></div><button class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full" onclick="adminPage('bookings')">Lihat semua →</button></div><div class="overflow-x-auto mt-2">${bookingTable(b.slice(0,5))}</div></div>`}
+function renderDashboard(){let b=db.bookings;document.getElementById('adminContent').innerHTML=`<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div class="card"><small class="text-slate-400 font-medium">Total Booking</small><div class="text-3xl font-black mt-1.5 text-slate-900">${b.length}</div></div><div class="card"><small class="text-slate-400 font-medium">Menunggu DP</small><div class="text-3xl font-black mt-1.5 text-amber-600">${b.filter(x=>x.status==='Menunggu DP').length}</div></div><div class="card"><small class="text-slate-400 font-medium">DP Diterima</small><div class="text-3xl font-black mt-1.5 text-indigo-600">${b.filter(x=>x.status==='DP Diterima').length}</div></div><div class="card"><small class="text-slate-400 font-medium">Paket Aktif</small><div class="text-3xl font-black mt-1.5 text-emerald-600">${db.packages.filter(x=>x.active).length}</div></div></div><div class="card mt-6"><div class="flex justify-between items-center pb-4 border-b border-slate-100"><div><b class="text-slate-900">Booking Terbaru</b><p class="text-xs text-slate-400 mt-0.5">Data tersinkron dengan Google Sheets.</p></div><button class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full" onclick="adminPage('bookings')">Lihat semua →</button></div><div class="overflow-x-auto mt-2">${bookingTable(b.slice(0,5),false)}</div></div>`}
 function formatOrderDate(value){
  if(!value)return '-';
  const raw=String(value);
@@ -424,16 +574,16 @@ function getEventBadgeClass(type) {
     default: return 'bg-slate-100 text-slate-700 border border-slate-200';
   }
 }
-function bookingTable(list){if(!list.length)return'<div class="text-sm text-slate-400 py-10 text-center">Belum ada booking yang cocok.</div>';return`<table class="w-full text-sm"><thead><tr class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"><th class="py-3.5 pr-4">Nomor</th><th class="py-3.5 pr-4">Pemesan</th><th class="py-3.5 pr-4">Jenis Acara</th><th class="py-3.5 pr-4">Paket</th><th class="py-3.5 pr-4">Tanggal</th><th class="py-3.5 pr-4">Total</th><th class="py-3.5 pr-4">Referensi</th><th class="py-3.5 pr-4">Progres</th><th class="py-3.5">Shortcut</th></tr></thead><tbody>${list.map(b=>{
+function bookingTable(list,showOrder=true){if(!list.length)return'<div class="text-sm text-slate-400 py-10 text-center">Belum ada booking yang cocok.</div>';return`<table class="w-full text-sm"><thead><tr class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"><th class="py-3.5 pr-4">Nomor</th><th class="py-3.5 pr-4">Pemesan</th><th class="py-3.5 pr-4">Jenis Acara</th><th class="py-3.5 pr-4">Paket</th><th class="py-3.5 pr-4">Tanggal</th><th class="py-3.5 pr-4">Total</th><th class="py-3.5 pr-4">Referensi</th><th class="py-3.5 pr-4">Progres</th><th class="py-3.5">${showOrder?'Order & Invoice':'Invoice'}</th></tr></thead><tbody>${list.map(b=>{
   const refLink = b.reference ? `<a href="${esc(b.reference)}" target="_blank" class="text-xs font-bold text-indigo-600 underline">Buka Link</a>` : '<span class="text-slate-300">-</span>';
   const eventBadge = `<span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${getEventBadgeClass(b.eventType)}">${esc(b.eventType || 'Lainnya')}</span>`;
-  return `<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition"><td class="py-3.5 pr-4 font-bold text-slate-800">${esc(b.number||b.id)}</td><td class="py-3.5 pr-4"><span class="font-semibold text-slate-800">${esc(b.name)}</span><div class="text-xs text-slate-400">${esc(b.phone)}</div></td><td class="py-3.5 pr-4">${eventBadge}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.packageName||'-')}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.date||'-')}</td><td class="py-3.5 pr-4 font-bold text-slate-900">${rupiah(b.total||0)}</td><td class="py-3.5 pr-4">${refLink}</td><td class="py-3.5 pr-4"><select onchange="changeBookingStatus('${esc(b.id)}',this.value)" class="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium focus:outline-none focus:border-indigo-500"><option ${b.status==='Menunggu DP'?'selected':''}>Menunggu DP</option><option ${b.status==='DP Diterima'?'selected':''}>DP Diterima</option><option ${b.status==='Booking Confirmed'?'selected':''}>Booking Confirmed</option><option ${b.status==='Persiapan Event'?'selected':''}>Persiapan Event</option><option ${b.status==='Event Berlangsung'?'selected':''}>Event Berlangsung</option><option ${b.status==='Editing'?'selected':''}>Editing</option><option ${b.status==='Revisi'?'selected':''}>Revisi</option><option ${b.status==='Selesai'?'selected':''}>Selesai</option><option ${b.status==='Cancelled'?'selected':''}>Cancelled</option></select></td><td class="py-3.5"><button class="primary whitespace-nowrap text-xs py-2 px-3" onclick="openOrderFormat('${esc(b.id)}')">Buat Format Order</button></td></tr>`;
+  return `<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition"><td class="py-3.5 pr-4 font-bold text-slate-800">${esc(b.number||b.id)}</td><td class="py-3.5 pr-4"><span class="font-semibold text-slate-800">${esc(b.name)}</span><div class="text-xs text-slate-400">${esc(b.phone)}</div></td><td class="py-3.5 pr-4">${eventBadge}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.packageName||'-')}</td><td class="py-3.5 pr-4 text-slate-600">${esc(b.date||'-')}</td><td class="py-3.5 pr-4 font-bold text-slate-900">${rupiah(b.total||0)}</td><td class="py-3.5 pr-4">${refLink}</td><td class="py-3.5 pr-4"><select onchange="changeBookingStatus('${esc(b.id)}',this.value)" class="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium focus:outline-none focus:border-indigo-500"><option ${b.status==='Menunggu DP'?'selected':''}>Menunggu DP</option><option ${b.status==='DP Diterima'?'selected':''}>DP Diterima</option><option ${b.status==='Booking Confirmed'?'selected':''}>Booking Confirmed</option><option ${b.status==='Persiapan Event'?'selected':''}>Persiapan Event</option><option ${b.status==='Event Berlangsung'?'selected':''}>Event Berlangsung</option><option ${b.status==='Editing'?'selected':''}>Editing</option><option ${b.status==='Revisi'?'selected':''}>Revisi</option><option ${b.status==='Selesai'?'selected':''}>Selesai</option><option ${b.status==='Cancelled'?'selected':''}>Cancelled</option></select></td><td class="py-3.5 whitespace-nowrap">${showOrder?`<button class="primary text-xs py-1.5 px-2.5 mr-1" onclick="openOrderFormat('${esc(b.id)}')">Order</button>`:''}<button class="secondary text-xs py-1.5 px-2.5 text-indigo-600 font-bold" onclick="openInvoiceModal('${esc(b.id)}')">📄 Invoice</button></td></tr>`;
 }).join('')}</tbody></table>`}
 
 function renderBookings(){
  const term=bookingSearchTerm.toLowerCase();
  const filtered=db.bookings.filter(b=>[b.name,b.phone,b.id,b.number,b.packageName,b.eventType].some(v=>String(v||'').toLowerCase().includes(term)));
- document.getElementById('adminContent').innerHTML=`<div class="card"><div class="flex flex-col sm:flex-row gap-3 justify-between sm:items-center pb-4 border-b border-slate-100"><div><b class="text-slate-900 text-lg">Semua Booking</b><p class="text-xs text-slate-400 mt-0.5">Cari client, lalu buat format order untuk freelancer.</p></div><button class="secondary text-xs py-2" onclick="refreshBookings()">↻ Refresh Data</button></div><div class="mt-4"><label class="label" for="bookingSearch">Cari nama client atau jenis acara</label><div class="relative"><input id="bookingSearch" class="input pl-10" placeholder="Ketik nama, nomor HP, jenis acara, atau ID booking..." value="${esc(bookingSearchTerm)}" oninput="filterBookings(this.value)"><span class="absolute left-3.5 top-3 text-slate-400">⌕</span></div><p class="text-xs text-slate-400 mt-2" id="bookingSearchCount">Menampilkan ${filtered.length} dari ${db.bookings.length} booking</p></div><div class="overflow-x-auto mt-2">${bookingTable(filtered)}</div><div id="orderFormatPanel" class="hidden mt-6"></div></div>`;
+ document.getElementById('adminContent').innerHTML=`<div class="card"><div class="flex flex-col sm:flex-row gap-3 justify-between sm:items-center pb-4 border-b border-slate-100"><div><b class="text-slate-900 text-lg">Semua Booking</b><p class="text-xs text-slate-400 mt-0.5">Cari client, lalu buat format order atau cetak invoice.</p></div><button class="secondary text-xs py-2" onclick="refreshBookings()">↻ Refresh Data</button></div><div class="mt-4"><label class="label" for="bookingSearch">Cari nama client atau jenis acara</label><div class="relative"><input id="bookingSearch" class="input pl-10" placeholder="Ketik nama, nomor HP, jenis acara, atau ID booking..." value="${esc(bookingSearchTerm)}" oninput="filterBookings(this.value)"><span class="absolute left-3.5 top-3 text-slate-400">⌕</span></div><p class="text-xs text-slate-400 mt-2" id="bookingSearchCount">Menampilkan ${filtered.length} dari ${db.bookings.length} booking</p></div><div class="overflow-x-auto mt-2">${bookingTable(filtered)}</div><div id="orderFormatPanel" class="hidden mt-6"></div></div>`;
 }
 function filterBookings(value){bookingSearchTerm=value;const term=value.toLowerCase();const filtered=db.bookings.filter(b=>[b.name,b.phone,b.id,b.number,b.packageName,b.eventType].some(v=>String(v||'').toLowerCase().includes(term)));const tableWrap=document.querySelector('#adminContent .overflow-x-auto');if(tableWrap)tableWrap.innerHTML=bookingTable(filtered);const count=document.getElementById('bookingSearchCount');if(count)count.textContent=`Menampilkan ${filtered.length} dari ${db.bookings.length} booking`;}
 function openOrderFormat(id){
@@ -467,6 +617,89 @@ function featureToggle(key,label,id){return`<label class="flex items-center just
 function addTerm(){document.getElementById('termsInputs').insertAdjacentHTML('beforeend','<div class="flex gap-2"><input class="input termInput" placeholder="Ketentuan baru"><button class="secondary text-slate-400 hover:text-red-600 px-3" onclick="this.parentElement.remove()">×</button></div>')}
 async function saveSettings(){const old=JSON.parse(JSON.stringify(db.settings));db.settings.brand=document.getElementById('setBrand').value;db.settings.dpPercent=Number(document.getElementById('setDp').value);db.settings.whatsapp=document.getElementById('setWa').value;db.settings.adminPin=document.getElementById('setPin').value;db.settings.terms=[...document.querySelectorAll('.termInput')].map(x=>x.value.trim()).filter(Boolean);db.settings.features={availability:document.getElementById('availabilityToggle').checked,payment:document.getElementById('paymentToggle').checked,clientTracking:document.getElementById('trackingToggle').checked,autoWa:document.getElementById('autoWaToggle').checked};try{await saveCloudConfig();toast('Pengaturan tersimpan di Google Sheets')}catch(e){db.settings=old;toast('Gagal menyimpan pengaturan: '+e.message)}}
 function resetClient(){document.getElementById('clientForm').reset();document.getElementById('clientForm').classList.remove('hidden-page');document.getElementById('clientHeader').classList.remove('hidden-page');hide('success');selectedService=null;selectedPackage=null;selectedAddons=[];setClientStep(1);renderServices()}
+
+function openInvoiceModal(id){
+  const b = db.bookings.find(x => String(x.id) === String(id));
+  if(!b){ alert('Data booking tidak ditemukan.'); return; }
+
+  const now = new Date();
+  const dateStr = b.date ? formatOrderDate(b.date) : now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+  
+  document.getElementById('invNumber').textContent = '#' + (b.number || b.id || 'INV/2026/11/28/01');
+  document.getElementById('invClientName').textContent = b.name || '-';
+  document.getElementById('invClientPhone').textContent = b.phone ? 'WhatsApp: ' + b.phone : '-';
+  document.getElementById('invDate').textContent = dateStr;
+  
+  const total = Number(b.total) || 0;
+  const dp = Number(b.dp) || 0;
+  const sisa = Math.max(0, total - dp);
+  
+  document.getElementById('invHeaderSisa').textContent = rupiah(sisa);
+  document.getElementById('invFooterSisa').textContent = rupiah(sisa);
+  
+  document.getElementById('invPackageName').textContent = b.packageName || b.service || 'Paket Dokumentasi';
+  
+  const foundPkg = db.packages.find(p => p.name === b.packageName);
+  let pkgDescText = foundPkg ? foundPkg.desc : '';
+  
+  let descHtml = '';
+  if(pkgDescText){
+    descHtml += `<div>• ${esc(pkgDescText)}</div>`;
+  }
+  if(b.additional && b.additional !== '-'){
+    descHtml += `<div>• Add-on: ${esc(b.additional)}</div>`;
+  }
+  
+  if(!descHtml){
+    descHtml = `
+      <div>- 1 Graduates</div>
+      <div>- Free family photos</div>
+      <div>- 1-Hour Photography Session</div>
+      <div>- All Original RAW Files</div>
+      <div>- 35 Professionally Edited Photos</div>
+      <div>- Google Drive Delivery</div>
+      <div>- 14-Day Online File Storage</div>
+      <div>- Include Transport</div>
+    `;
+  }
+  
+  document.getElementById('invPackageDesc').innerHTML = descHtml;
+  
+  const start = formatOrderTime(b.start || b.startTime || '');
+  const end = formatOrderTime(b.end || b.endTime || '');
+  const timeStr = start && end ? `${start} - ${end}` : '';
+  document.getElementById('invSchedule').textContent = dateStr + (timeStr ? ` (${timeStr})` : '');
+  
+  const isPaid = (b.status === 'Selesai' || (b.status === 'Booking Confirmed' && sisa === 0));
+  const statusBadge = document.getElementById('invStatusBadge');
+  statusBadge.textContent = isPaid ? 'Lunas' : (b.status || 'Belum Lunas');
+  statusBadge.className = isPaid 
+    ? 'inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800' 
+    : 'inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800';
+
+  document.getElementById('invPackagePrice').textContent = rupiah(total);
+  document.getElementById('invBasePrice').textContent = rupiah(total - (b.addonTotal || 0));
+  document.getElementById('invAddonPrice').textContent = rupiah(b.addonTotal || 0);
+  document.getElementById('invSubTotal').textContent = rupiah(total);
+  document.getElementById('invTotal').textContent = rupiah(total);
+  document.getElementById('invDp').textContent = '- ' + rupiah(dp);
+
+  document.getElementById('invoiceModal').classList.remove('hidden-page');
+}
+
+function printInvoice(){
+  const oldTitle=document.title;
+  const num=(document.getElementById('invNumber')?.textContent||'').replace(/^#/,'').trim();
+  document.title='Invoice-'+(num||'Moments-Asa').replace(/[\\/:*?"<>|\s]+/g,'-');
+  const restore=()=>{document.title=oldTitle;window.removeEventListener('afterprint',restore)};
+  window.addEventListener('afterprint',restore);
+  window.print();
+  setTimeout(()=>{if(document.title!==oldTitle)document.title=oldTitle},1500);
+}
+
+function closeInvoiceModal(){
+  document.getElementById('invoiceModal').classList.add('hidden-page');
+}
 
 function initSecretAdminGesture(){
   const btn = document.getElementById('secretAdminTrigger');
