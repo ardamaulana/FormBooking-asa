@@ -246,8 +246,26 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
         <p class="text-[11px] text-slate-500">Pratinjau dokumen invoice resmi Moments Asa</p>
       </div>
       <div class="flex gap-2">
+        <button id="invEditBtn" class="secondary text-xs py-2 px-3 font-bold hidden-page" onclick="toggleInvoiceEdit()">✏️ Edit Invoice</button>
         <button class="primary text-xs py-2 px-3.5 shadow" onclick="printInvoice()">🖨️ Cetak / PDF</button>
         <button class="secondary text-xs py-2 px-3 font-bold" onclick="closeInvoiceModal()">✕ Tutup</button>
+      </div>
+    </div>
+
+    <!-- Panel Edit Invoice (khusus admin, tidak ikut tercetak) -->
+    <div id="invEditPanel" class="hidden-page print:hidden px-4 sm:px-6 py-4 bg-indigo-50/60 border-b border-indigo-100">
+      <div class="text-xs font-bold text-indigo-700 mb-3">Edit nominal invoice <span class="font-medium text-slate-500">— total & sisa dihitung otomatis</span></div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div><label class="label">Harga Paket (Rp)</label><input id="invEditBase" type="number" min="0" class="input" oninput="updateInvEditPreview()"></div>
+        <div><label class="label">Add-on / Tambahan (Rp)</label><input id="invEditAddon" type="number" min="0" class="input" oninput="updateInvEditPreview()"></div>
+        <div><label class="label">DP Dibayar (Rp)</label><input id="invEditDp" type="number" min="0" class="input" oninput="updateInvEditPreview()"></div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
+        <div id="invEditPreview" class="text-xs text-slate-600"></div>
+        <div class="flex gap-2">
+          <button class="secondary text-xs py-2 px-3" onclick="toggleInvoiceEdit()">Batal</button>
+          <button id="invEditSaveBtn" class="primary text-xs py-2 px-3.5" onclick="saveInvoiceEdit()">Simpan Perubahan</button>
+        </div>
       </div>
     </div>
 
@@ -465,7 +483,8 @@ async function syncBookingsFromSheet(){
     total:Number(row.total)||old.total||0,status:row.status||old.status||'Menunggu DP',
     eventType:row.eventType||old.eventType||'',start:row.start||row.startTime||old.start||'',end:row.end||row.endTime||old.end||'',
     location:row.location||old.location||'',maps:row.maps||old.maps||'',service:row.service||old.service||'',email:row.email||old.email||'',instagram:row.instagram||old.instagram||'',dp:Number(row.dp)||old.dp||0,sisa:Number(row.sisa)||old.sisa||0,createdAt:row.createdAt||old.createdAt||'',
-    reference:row.reference||old.reference||''
+    reference:row.reference||old.reference||'',
+    addonTotal:(Number(row.packagePrice)>0)?Math.max(0,(Number(row.total)||0)-Number(row.packagePrice)):(old.addonTotal||0)
    };
   });
   saveDB();
@@ -623,9 +642,59 @@ function addTerm(){document.getElementById('termsInputs').insertAdjacentHTML('be
 async function saveSettings(){const old=JSON.parse(JSON.stringify(db.settings));db.settings.brand=document.getElementById('setBrand').value;db.settings.dpPercent=Number(document.getElementById('setDp').value);db.settings.whatsapp=document.getElementById('setWa').value;db.settings.adminPin=document.getElementById('setPin').value;db.settings.terms=[...document.querySelectorAll('.termInput')].map(x=>x.value.trim()).filter(Boolean);db.settings.features={availability:document.getElementById('availabilityToggle').checked,payment:document.getElementById('paymentToggle').checked,clientTracking:document.getElementById('trackingToggle').checked,autoWa:document.getElementById('autoWaToggle').checked};try{await saveCloudConfig();toast('Pengaturan tersimpan di Google Sheets')}catch(e){db.settings=old;toast('Gagal menyimpan pengaturan: '+e.message)}}
 function resetClient(){document.getElementById('clientForm').reset();document.getElementById('clientForm').classList.remove('hidden-page');document.getElementById('clientHeader').classList.remove('hidden-page');hide('success');selectedService=null;selectedPackage=null;selectedAddons=[];setClientStep(1);renderServices()}
 
+let currentInvoiceId=null;
+function setupInvoiceEdit(b){
+  currentInvoiceId=b.id;
+  const isAdmin=!document.getElementById('adminApp').classList.contains('hidden-page');
+  document.getElementById('invEditBtn').classList.toggle('hidden-page',!isAdmin);
+  document.getElementById('invEditPanel').classList.add('hidden-page');
+}
+function toggleInvoiceEdit(){
+  const panel=document.getElementById('invEditPanel');
+  const opening=panel.classList.contains('hidden-page');
+  if(opening){
+    const b=db.bookings.find(x=>String(x.id)===String(currentInvoiceId));if(!b)return;
+    const total=Number(b.total)||0;
+    const base=Number(b.packagePrice)||Math.max(0,total-(Number(b.addonTotal)||0));
+    document.getElementById('invEditBase').value=base;
+    document.getElementById('invEditAddon').value=Math.max(0,total-base);
+    document.getElementById('invEditDp').value=Number(b.dp)||0;
+    updateInvEditPreview();
+  }
+  panel.classList.toggle('hidden-page',!opening);
+}
+function invEditValues(){
+  const base=Number(document.getElementById('invEditBase').value)||0;
+  const addon=Number(document.getElementById('invEditAddon').value)||0;
+  const dp=Number(document.getElementById('invEditDp').value)||0;
+  const total=base+addon;
+  return {base,addon,dp,total,sisa:Math.max(0,total-dp)};
+}
+function updateInvEditPreview(){
+  const v=invEditValues();
+  document.getElementById('invEditPreview').innerHTML=`Total: <b>${rupiah(v.total)}</b> &nbsp;•&nbsp; Sisa pembayaran: <b>${rupiah(v.sisa)}</b>`;
+}
+async function saveInvoiceEdit(){
+  const b=db.bookings.find(x=>String(x.id)===String(currentInvoiceId));
+  if(!b){alert('Data booking tidak ditemukan.');return}
+  const v=invEditValues();
+  if(v.base<0||v.addon<0||v.dp<0){alert('Nominal tidak boleh negatif.');return}
+  if(v.dp>v.total&&!confirm('DP lebih besar dari total. Tetap simpan?'))return;
+  const btn=document.getElementById('invEditSaveBtn');btn.disabled=true;btn.textContent='Menyimpan...';
+  try{
+    await gasRequest({action:'updateInvoice',id:b.id,packagePrice:v.base,total:v.total,dp:v.dp,sisa:v.sisa});
+    b.packagePrice=v.base;b.addonTotal=v.addon;b.total=v.total;b.dp=v.dp;b.sisa=v.sisa;
+    saveDB();
+    openInvoiceModal(b.id);
+    const bs=document.getElementById('bookingSearch');if(bs)filterBookings(bs.value);
+    toast('Invoice diperbarui & tersimpan di Google Sheets');
+  }catch(err){alert('Gagal menyimpan perubahan invoice: '+err.message)}
+  finally{btn.disabled=false;btn.textContent='Simpan Perubahan'}
+}
 function openInvoiceModal(id){
   const b = db.bookings.find(x => String(x.id) === String(id));
   if(!b){ alert('Data booking tidak ditemukan.'); return; }
+  setupInvoiceEdit(b);
 
   const now = new Date();
   const dateStr = b.date ? formatOrderDate(b.date) : now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
