@@ -129,7 +129,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color:
 <section id="c2" class="hidden-page fade">
 <div class="card space-y-5">
 <div><label class="label">Jenis Acara *</label><select id="eventType" class="input bg-white" onchange="onEventTypeChange()"><option value="">Pilih jenis acara</option><option>Wedding</option><option>Prewedding</option><option>Wisuda</option><option>Engagement</option><option>Event Documentation</option><option>Lainnya</option></select></div>
-<div class="grid sm:grid-cols-2 gap-5"><div><label class="label">Tanggal Acara *</label><input id="eventDate" type="date" class="input"></div><div><label class="label">Waktu Acara *</label><div class="grid grid-cols-2 gap-2"><input id="startTime" type="time" class="input"><input id="endTime" type="time" class="input"></div><p class="hint">Mulai — selesai</p></div></div>
+<div class="grid sm:grid-cols-2 gap-5"><div><label class="label">Tanggal Acara *</label><input id="eventDate" type="date" class="input"></div><div><label class="label">Waktu Acara *</label><div class="grid grid-cols-2 gap-2"><select id="startTime" class="input"></select><select id="endTime" class="input"></select></div><p class="hint">Mulai — selesai (format 24 jam)</p></div></div>
 <div><label class="label">Lokasi Acara *</label><input id="location" class="input" placeholder="Nama gedung / venue / rumah"></div>
 <div><label class="label">Link Google Maps <span>(opsional)</span></label><input id="maps" class="input" type="url" placeholder="https://maps.google.com/..."></div>
 </div>
@@ -464,7 +464,7 @@ async function syncBookingsFromSheet(){
     packagePrice:Number(row.packagePrice)||old.packagePrice||0,additional:row.additional||old.additional||'',
     total:Number(row.total)||old.total||0,status:row.status||old.status||'Menunggu DP',
     eventType:row.eventType||old.eventType||'',start:row.start||row.startTime||old.start||'',end:row.end||row.endTime||old.end||'',
-    location:row.location||old.location||'',maps:row.maps||old.maps||'',service:row.service||old.service||'',email:row.email||old.email||'',dp:Number(row.dp)||old.dp||0,sisa:Number(row.sisa)||old.sisa||0,createdAt:row.createdAt||old.createdAt||'',
+    location:row.location||old.location||'',maps:row.maps||old.maps||'',service:row.service||old.service||'',email:row.email||old.email||'',instagram:row.instagram||old.instagram||'',dp:Number(row.dp)||old.dp||0,sisa:Number(row.sisa)||old.sisa||0,createdAt:row.createdAt||old.createdAt||'',
     reference:row.reference||old.reference||''
    };
   });
@@ -512,6 +512,11 @@ function buildSummary(){
   document.getElementById('terms').innerHTML=db.settings.terms.map(x=>`<li class="flex items-start gap-2"><span class="text-indigo-500 font-bold">•</span><span>${esc(x)}</span></li>`).join('')
 }
 
+function fillTimeSelects(){
+ const opts=['<option value="">--:--</option>'];
+ for(let h=0;h<24;h++)for(let m=0;m<60;m+=15){const t=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');opts.push(`<option value="${t}">${t}</option>`)}
+ ['startTime','endTime'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts.join('')})
+}
 async function submitBooking(){
  if(!document.getElementById('agree').checked){alert('Silakan setujui ketentuan booking.');return}
  if(!backendReady()){alert('Website belum terhubung. Admin perlu memasang URL Web App Google Apps Script di konfigurasi.');return}
@@ -521,7 +526,7 @@ async function submitBooking(){
 
   const booking={
    id,name:document.getElementById('name').value.trim(),phone:document.getElementById('phone').value.trim(),
-   email:document.getElementById('email').value.trim(),eventType:document.getElementById('eventType').value,
+   email:document.getElementById('email').value.trim(),instagram:document.getElementById('instagram').value.trim(),eventType:document.getElementById('eventType').value,
    date:document.getElementById('eventDate').value,start:document.getElementById('startTime').value,end:document.getElementById('endTime').value,
    location:document.getElementById('location').value,maps:document.getElementById('maps').value,
    service:db.services.find(x=>x.id===selectedService)?.name||'',packageId:selectedPackage,packageName:m.p?.name||'',
@@ -753,7 +758,7 @@ function initSecretAdminGesture(){
 document.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('eventDate').min=new Date().toISOString().split('T')[0];
   document.getElementById('selectedEventLabel').textContent=document.getElementById('eventType').value||'Belum dipilih';
-  renderServices();renderClientProgress();initSecretAdminGesture();
+  fillTimeSelects();renderServices();renderClientProgress();initSecretAdminGesture();
   try{await loadCloudConfig();await syncBookingsFromSheet();renderServices();}
   catch(err){console.warn('Cloud init:',err);toast('Google Sheets belum tersambung. Data lokal sementara digunakan.')}
 });
